@@ -1,0 +1,618 @@
+{
+  "name": "LINE Bot AI教練 - 每日結算/提醒",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 22
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "11c713c5-1afe-4109-b407-21470e7f5dff",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        256,
+        0
+      ],
+      "id": "aaa95fa3-adb4-48d2-b210-09aa352c6aab",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "個人檔案",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        0
+      ],
+      "id": "a528ae06-1e6d-41bd-8962-35a64dd7bc30",
+      "name": "抓取所有名單",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Loop Over Items').item.json.userId }}"
+            },
+            {
+              "lookupColumn": "日期",
+              "lookupValue": "={{ $now.format('DD') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        112
+      ],
+      "id": "ec8c9b69-fa12-4698-a355-97495b9f75ee",
+      "name": "抓取飲食",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 取得 Loop 傳過來的「個人目標」(TDEE)\n// 注意：要往回找 Loop 節點的資料，因為 Sheets 節點只會有飲食資料\nconst userProfile = $('Loop Over Items').item.json;\nconst tdee = parseFloat(userProfile['TDEE目標 ']) || 2000;\n\n// 2. 取得 Google Sheets 撈出來的「今日飲食」\nconst foodRecords = $input.all();\n\n// 3. 開始加總\nlet totalCal = 0;\nlet foodList = [];\n\n// 如果沒吃到東西 (空陣列)，totalCal 就是 0\nif (foodRecords.length > 0 && foodRecords[0].json['食物名稱']) {\n    foodRecords.forEach(item => {\n        totalCal += parseFloat(item.json['估算熱量(kcal)']) || 0;\n        foodList.push(item.json['食物名稱']);\n    });\n}\n\n// 4. 計算狀態\nlet diff = totalCal - tdee;\nlet status = \"\";\nif (totalCal === 0) status = \"未紀錄\";\nelse if (diff > 200) status = \"🔴 爆量\";\nelse if (diff < -500) status = \"🟡 吃太少\";\nelse status = \"🟢 完美達標\";\n\nreturn {\n    userId: userProfile.userId, // 記住 ID 才能推播\n    tdee: tdee,\n    totalCal: totalCal,\n    foodItems: foodList.join(\", \"),\n    diff: diff,\n    status: status\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        112
+      ],
+      "id": "cb6f1c51-78f4-4d82-987a-041619f00696",
+      "name": "計算總熱量"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=「你是阿冰教練。這是學員 {{ $('抓取使用者暱稱').first().json.displayName }} 今天的成績單： 目標 TDEE：{{ $json.tdee }}，實際攝取：{{ $json.totalCal }}。 吃了這些：{{ $json.foodItems }}。 請給他一個『今日總結』：\n\n如果是『未紀錄』，請罵他為什麼今天消失了。\n\n如果超過 TDEE，請嚴厲斥責。\n\n如果達標（赤字），請給予肯定。\n\n最後給一句明天繼續努力的狠話。」"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        960,
+        112
+      ],
+      "id": "2d19d123-efd8-411e-ac19-e66e4952a850",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QLVuVygWA7fpPkOl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.line.me/v2/bot/profile/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        112
+      ],
+      "id": "373f467a-c29e-454e-96e8-6afa9ac7b109",
+      "name": "抓取使用者暱稱",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $('Loop Over Items').first().json.userId }}\",\n  \"messages\": [\n    {\n      \"type\": \"flex\",\n      \"altText\": \"📑 阿冰教練的每日結算成績單\",\n      \"contents\": {\n        \"type\": \"bubble\",\n        \"size\": \"mega\",\n        \"header\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            {\n              \"type\": \"text\",\n              \"text\": \"📅 每日結算成績單\",\n              \"color\": \"#FFFFFF\",\n              \"weight\": \"bold\",\n              \"size\": \"lg\"\n            },\n            {\n              \"type\": \"text\",\n              \"text\": \"學員：{{ $('抓取使用者暱稱').first().json.displayName }}\",\n              \"color\": \"#FFDDDD\",\n              \"size\": \"xs\",\n              \"margin\": \"sm\"\n            }\n          ],\n          \"backgroundColor\": \"#B00020\",\n          \"paddingAll\": \"20px\"\n        },\n        \"body\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            {\n              \"type\": \"text\",\n              \"text\": \"CALORIE STATUS\",\n              \"color\": \"#aaaaaa\",\n              \"size\": \"xxs\",\n              \"weight\": \"bold\"\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"horizontal\",\n              \"margin\": \"md\",\n              \"contents\": [\n                {\n                  \"type\": \"text\",\n                  \"text\": \"{{ $('計算總熱量').item.json.totalCal || 0 }}\",\n                  \"size\": \"4xl\",\n                  \"weight\": \"bold\",\n                  \"color\": \"{{ ($('計算總熱量').item.json.totalCal || 0) > ($('計算總熱量').item.json.tdee || 2000) ? '#D32F2F' : '#2E7D32' }}\",\n                  \"flex\": 0\n                },\n                {\n                  \"type\": \"text\",\n                  \"text\": \"kcal\",\n                  \"size\": \"sm\",\n                  \"color\": \"#888888\",\n                  \"align\": \"start\",\n                  \"gravity\": \"bottom\",\n                  \"margin\": \"sm\"\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"sm\",\n              \"contents\": [\n                {\n                  \"type\": \"box\",\n                  \"layout\": \"horizontal\",\n                  \"contents\": [\n                    {\n                      \"type\": \"text\",\n                      \"text\": \"目標 TDEE\",\n                      \"size\": \"xs\",\n                      \"color\": \"#aaaaaa\"\n                    },\n                    {\n                      \"type\": \"text\",\n                      \"text\": \"/ {{ $('計算總熱量').item.json.tdee || 2000 }} kcal\",\n                      \"size\": \"xs\",\n                      \"color\": \"#555555\",\n                      \"align\": \"end\"\n                    }\n                  ]\n                },\n                {\n                  \"type\": \"separator\",\n                  \"margin\": \"lg\"\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"lg\",\n              \"contents\": [\n                {\n                  \"type\": \"text\",\n                  \"text\": \"🍽️ 今日攝取清單\",\n                  \"weight\": \"bold\",\n                  \"size\": \"sm\",\n                  \"color\": \"#333333\"\n                },\n                {\n                  \"type\": \"text\",\n                  \"text\": \"{{ $('計算總熱量').item.json.foodItems || '無紀錄' }}\",\n                  \"size\": \"xs\",\n                  \"color\": \"#666666\",\n                  \"wrap\": true,\n                  \"margin\": \"md\",\n                  \"maxLines\": 3\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"xl\",\n              \"backgroundColor\": \"#F5F5F5\",\n              \"cornerRadius\": \"md\",\n              \"paddingAll\": \"15px\",\n              \"contents\": [\n                {\n                  \"type\": \"box\",\n                  \"layout\": \"horizontal\",\n                  \"contents\": [\n                    {\n                      \"type\": \"text\",\n                      \"text\": \"💬 教練評語\",\n                      \"size\": \"xs\",\n                      \"color\": \"#B00020\",\n                      \"weight\": \"bold\"\n                    }\n                  ]\n                },\n                {\n                  \"type\": \"text\",\n                  \"text\": {{ JSON.stringify($json.output[0]?.content[0]?.text || \"教練正在思考中...\") }},\n                  \"size\": \"sm\",\n                  \"color\": \"#333333\",\n                  \"wrap\": true,\n                  \"margin\": \"md\",\n                  \"lineSpacing\": \"4px\"\n                }\n              ]\n            }\n          ]\n        },\n        \"footer\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            {\n              \"type\": \"text\",\n              \"text\": \"阿冰教練監控中 👁️\",\n              \"size\": \"xxs\",\n              \"color\": \"#bbbbbb\",\n              \"align\": \"center\"\n            }\n          ],\n          \"paddingAll\": \"20px\"\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "8462c7af-bd1d-41d8-b322-856f735b514f",
+      "name": "提醒紀錄通知",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        112
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 14
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -176,
+        464
+      ],
+      "id": "8ae6678a-2310-43a0-bb36-f0b04109b2ff",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        240,
+        464
+      ],
+      "id": "cdb3e841-4eda-446d-94d8-2ff276aafcac",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "個人檔案",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        32,
+        464
+      ],
+      "id": "afbdc972-4a60-4ba9-9fbf-478c81a5fa3e",
+      "name": "抓取所有名單1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Loop Over Items1').item.json.userId }}"
+            },
+            {
+              "lookupColumn": "日期",
+              "lookupValue": "={{ $now.format('DD') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        576
+      ],
+      "id": "b82449ed-4da9-4bfc-a330-637af4559ae7",
+      "name": "抓取飲食1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 取得 Loop 傳過來的「個人目標」(TDEE)\n// 注意：要往回找 Loop 節點的資料，因為 Sheets 節點只會有飲食資料\nconst userProfile = $('Loop Over Items1').item.json;\nconst tdee = parseFloat(userProfile['TDEE目標 ']) || 2000;\n\n// 2. 取得 Google Sheets 撈出來的「今日飲食」\nconst foodRecords = $input.all();\n\n// 3. 開始加總\nlet totalCal = 0;\nlet foodList = [];\n\n// 如果沒吃到東西 (空陣列)，totalCal 就是 0\nif (foodRecords.length > 0 && foodRecords[0].json['食物名稱']) {\n    foodRecords.forEach(item => {\n        totalCal += parseFloat(item.json['估算熱量(kcal)']) || 0;\n        foodList.push(item.json['食物名稱']);\n    });\n}\n\n// 4. 計算狀態\nlet diff = totalCal - tdee;\nlet status = \"\";\nif (totalCal === 0) status = \"未紀錄\";\nelse if (diff > 200) status = \"🔴 爆量\";\nelse if (diff < -500) status = \"🟡 吃太少\";\nelse status = \"🟢 完美達標\";\n\nreturn {\n    userId: userProfile.userId, // 記住 ID 才能推播\n    tdee: tdee,\n    totalCal: totalCal,\n    foodItems: foodList.join(\", \"),\n    diff: diff,\n    status: status\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        576
+      ],
+      "id": "88a8118b-10e2-4e9f-a403-98718372c22f",
+      "name": "計算總熱量1"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.line.me/v2/bot/profile/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        432,
+        576
+      ],
+      "id": "0d605e34-bec5-4cc1-bd07-1d6b8548556b",
+      "name": "抓取使用者暱稱1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $('Loop Over Items1').first().json.userId }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"阿冰教練查勤：\\n\\n{{ $('抓取使用者暱稱1').first().json.displayName }}，現在都下午兩點了，你怎麼一筆紀錄都沒有？🤨\\n\\n是打算偷偷塞滿肚子不讓我知道嗎？快給我去拍食物照片！\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "6875895c-7141-41d1-a765-4eb7000912f3",
+      "name": "提醒紀錄通知1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        560
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2a330f5e-2756-417a-8f02-a5c07d14c34e",
+              "leftValue": "={{ $json.totalCal }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        576
+      ],
+      "id": "ccee6f5c-df4a-45bc-9270-174cc695e5ad",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "抓取所有名單",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "抓取使用者暱稱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取所有名單": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取飲食": {
+      "main": [
+        [
+          {
+            "node": "計算總熱量",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "計算總熱量": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取使用者暱稱": {
+      "main": [
+        [
+          {
+            "node": "抓取飲食",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "提醒紀錄通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "提醒紀錄通知": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "抓取所有名單1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "抓取使用者暱稱1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取所有名單1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取飲食1": {
+      "main": [
+        [
+          {
+            "node": "計算總熱量1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "計算總熱量1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取使用者暱稱1": {
+      "main": [
+        [
+          {
+            "node": "抓取飲食1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "提醒紀錄通知1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "提醒紀錄通知1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Taipei",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "78e358e0-53e7-4e91-9740-c1b81c818e23",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e79e519af1013664c5c9d7368ca2d608e3b313b0a7ad62b6441dcd118835aefa"
+  },
+  "id": "AIPug1tTynwqPv2W",
+  "tags": []
+}

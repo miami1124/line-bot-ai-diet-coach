@@ -1,0 +1,2382 @@
+{
+  "name": "LINE Bot AI減肥教練",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1408,
+        -416
+      ],
+      "id": "dc1bc384-2e77-4f84-97ef-2f11dda8f7eb",
+      "name": "Webhook",
+      "webhookId": "8f500d3a-c8ab-43e0-a4e0-645c736bab72"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.events[0].source.userId }}。",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        112
+      ],
+      "id": "9dd951cf-3cb1-43de-ac6d-5bf7856741bd",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        -288
+      ],
+      "id": "e8d7024b-28c0-4de0-9bbf-bdded7f20b06",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "QLVuVygWA7fpPkOl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.events[0].source.userId }}。",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        -288
+      ],
+      "id": "29dc200c-541d-4c9c-91c5-55d5b9d29aab",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=1977854954#gid=1977854954",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "個人檔案",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Webhook').item.json.body.events[0].source.userId }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -672,
+        -176
+      ],
+      "id": "9bda8649-cb4d-4285-b4f9-2ef459b2c04c",
+      "name": "讀取個人檔案 (TDEE)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body.events[0].message.type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e7b46d75-0925-4dce-a48d-5acc36cadc05"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "文字"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cbf97545-03e3-4f36-af9f-ffb08d9add59",
+                    "leftValue": "={{ $('Webhook').item.json.body.events[0].message.type }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "圖片"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        -192
+      ],
+      "id": "e2a17997-b144-4bc2-8288-08f4e65d4a2d",
+      "name": "判斷訊息類型 (圖片/文字)"
+    },
+    {
+      "parameters": {
+        "url": "=https://api-data.line.me/v2/bot/message/{{ $('Webhook').item.json.body.events[0].message.id }}/content",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        384,
+        -48
+      ],
+      "id": "5ffc6c2a-bb9a-4060-a750-1011703483e1",
+      "name": "獲取 LINE 圖片二進位",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=「教練，這是我剛才吃的食物的照片。 我的每日攝取上限（TDEE目標）是{{ $('讀取個人檔案 (TDEE)').first().json['TDEE目標 '] }} kcal。\n\n請你努力督促我給我回饋吧，我想變瘦啊!!!!",
+        "options": {
+          "systemMessage": "=# Role\n你是一位名為「阿冰」的傲嬌減肥教練。你極度毒舌、冷酷，具備專業營養師的精算眼光，專門拆穿用戶的「低估熱量」幻想。\n\n# User Data\n- 性別：男 | 身高：164cm\n- 每日攝取上限 (TDEE)：{{ $('讀取個人檔案 (TDEE)').first().json['TDEE目標 '] }} kcal\n\n# Task\n分析照片內容並精算營養成分。你必須像判官一樣，對高熱量食物進行「嚴格加權」。\n\n# ⚖️ 視覺校準與營養審判準則\n1. **份量與密度校準**：\n   - 觀察容器比例，若食物填滿餐盤或高度堆疊，份量必須以「2人份」基準起跳。\n   - 只要是「油炸物」，每100g 熱量不得低於 250 kcal，脂肪不得低於 15g。\n2. **隱形熱量懲罰 (Critical)**：\n   - **亮面醬汁**：糖分 (Sugar) 強制從 20g 起跳，總熱量額外增加 150 kcal。\n   - **油光感**：脂肪 (Fat) 額外增加 10g。\n\n# 🏃 贖罪建議規則\n請根據辨識出的熱量與營養素，給出具體的「代償運動」：\n- **高糖/高碳水**：要求用戶進行高強度間歇或跑步。\n- **高脂肪**：要求用戶進行長時間有氧。\n- **蛋白質不足**：嘲諷用戶在浪費扣打，要求下一餐補回來。\n\n# Constraints\n1. 嚴格遵守 JSON 格式，不得包含 Markdown 標籤。\n2. 語氣：絕對禁止鼓勵，火力全開羞辱。\n3. 必備表情：🙄、😏、🤢、🙊。\n\n# Output Format (JSON Only)\n{\n  \"category\": \"飲食/喝水/運動/unknown\",\n  \"food_name\": \"名稱\",\n  \"nutrients\": {\n    \"cal\": 0,\n    \"protein\": 0,\n    \"fat\": 0,\n    \"carb\": 0,\n    \"sugar\": 0\n  },\n  \"coach_comment\": \"（引用數據開罵）\",\n  \"exercise_advice\": \"（具體的運動代償與下餐建議』）\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        528,
+        -48
+      ],
+      "id": "cd65f6b8-c34e-44c8-a8b7-9c2f238cbb55",
+      "name": "AI 影像辨識 "
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=這是我剛傳給你的訊息：\n---\n{{ $('Webhook').first().json.body.events[0].message.text }}\n---\n\n我的資料：\n- 目前系統紀錄體重：{{ $('讀取個人檔案 (TDEE)').item.json['體重 (kg)'] }} kg\n- 我的目標 (TDEE)：{{ $('讀取個人檔案 (TDEE)').item.json['TDEE目標 '] }} kcal\n\n請根據「任務規範」決定回覆模式。如果是報體重，請務必在 [數據] 欄位填入正確數字！",
+        "options": {
+          "systemMessage": "=# Role\n你是一位名為「阿冰」的傲嬌減肥教練。你擁有調閱與記錄用戶「飲食與體重數據」的權限。你的語氣必須毒舌、不耐煩，但對數據要求極度嚴謹。\n\n# Tools Usage Rules (核心決策邏輯)\n1. **查詢飲食紀錄**：當用戶詢問「今天吃了什麼」、「剩餘熱量」、「熱量進度」或任何需要知道「過去紀錄」的問題時，必須先調用 `Google Sheets Tool`。\n2. **分析與計算**：取得工具回傳的數據後，請自行在腦中加總，並對比用戶的 TDEE 目標進行審判。\n3. **體重更新觸發**：當用戶提到「我量了體重」、「體重是 XX」或單純輸入一個體重數字時，請執行【體重紀錄模式】。\n\n# Output Formats (輸出規範)\n根據不同場景，你必須嚴格遵守以下輸出格式：\n\n## 1. 【體重紀錄模式】 (優先級最高)\n- **條件**：用戶提供體重數字。\n- **格式**：\n  類別：體重更新\n  [數據]：體重 [[此處填入數字]] kg\n- **注意**：此模式下禁止廢話，只需輸出標籤與數據，讓後端流程能精準解析。\n\n## 2. 【數據查詢與審判模式】\n- **條件**：調用工具查詢完畢後。\n- **要求**：維持「阿冰」的人設，用自然對話告知結果。\n- **範例**：\n  「看了一下紀錄，你今天已經塞了 {{總熱量}} kcal 了。🙄 蛋白質才 {{蛋白質}}g，你是打算靠意念長肌肉嗎？🤢」\n\n## 3. 【日常對話模式】\n- **條件**：其餘純文字聊天。\n- **格式**：第一行標註「類別：聊天模式」。\n- **要求**：火力全開地進行毒舌對話，維持教練的人設。\n\n# Constraints\n- 嚴禁只輸出 JSON 程式碼。\n- 除非是報體重，否則必須展現你的「傲嬌毒舌」個性。\n- 如果工具回傳空數據，請嘲諷用戶：「現在都幾點了，一張照片都沒傳，是想偷偷肥死嗎？🙊」"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        432,
+        -448
+      ],
+      "id": "bed508a1-96de-44ab-b190-c5549fb146d3",
+      "name": "AI 文字解析"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = items[0].json.output;\n\n// 1. 判定類別\nlet category = \"聊天模式\";\nif (text.includes(\"類別：體重更新\")) {\n    category = \"體重更新\";\n} else if (text.includes(\"類別：聊天模式\")) {\n    category = \"聊天模式\";\n}\n\n// 2. 初始化變數\nlet weight = null;\nlet comment = \"\";\n\n// 3. 處理抓取邏輯\nif (category === \"體重更新\") {\n    const dataLineMatch = text.match(/\\[數據\\]：體重\\s*(\\d+(\\.\\d+)?)/);\n    weight = dataLineMatch ? parseFloat(dataLineMatch[1]) : null;\n    \n    // 體重更新時，教練不廢話\n    comment = \"\"; \n} else {\n    // 【關鍵優化】：如果是聊天模式，直接保留 Agent 輸出的所有內容\n    // 不要再用 Regex 去切標籤，因為 Agent 可能會說出很長一段包含數據的分析\n    comment = text.replace(/^類別：聊天模式[。，]?\\s*/, \"\").trim();\n}\n\nreturn [{\n  json: {\n    category: category,\n    weight: weight,\n    comment: comment,\n    full_text: text \n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -448
+      ],
+      "id": "7a4f9ce7-c1d5-4098-9dc4-74ac4612007e",
+      "name": "解析文字：類別分流處理"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3d8d8200-262c-4d28-9f1a-98924cc52ad5",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "體重更新",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "體重"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c763a492-0d2a-4ad3-9690-7ad939e21a62",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "聊天模式",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "聊天模式"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "飲食",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "605c4298-7c6f-40fa-9205-b526b90c38f3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "飲食"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        -336
+      ],
+      "id": "ae4add1d-bf55-4c14-88ce-053ae816056a",
+      "name": "分類類別"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1977854954,
+          "mode": "list",
+          "cachedResultName": "體重日誌",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=1977854954"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "日期": "={{ $now.format('DD') }}",
+            "體重": "={{ $json.weight }}",
+            "教練評比": "={{ $json.comment }}",
+            "userId": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "日期",
+              "displayName": "日期",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "體重",
+              "displayName": "體重",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "教練評比",
+              "displayName": "教練評比",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -496
+      ],
+      "id": "e7447274-1215-4457-b6fc-cd82ba9438a8",
+      "name": "寫入體重日誌",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').first().json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"flex\",\n      \"altText\": \"📉 體重趨勢數據審判\",\n      \"contents\": {\n        \"type\": \"bubble\",\n        \"size\": \"mega\",\n        \"header\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            { \"type\": \"text\", \"text\": \"📉 體重趨勢數據審判\", \"color\": \"#ffffff\", \"size\": \"md\", \"weight\": \"bold\" }\n          ],\n          \"backgroundColor\": \"#FF4B4B\",\n          \"paddingTop\": \"15px\",\n          \"paddingBottom\": \"15px\"\n        },\n        \"body\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            {\n              \"type\": \"image\",\n              \"url\": \"{{ $('7天平均計算').item.json.chart_url }}\",\n              \"size\": \"full\",\n              \"aspectMode\": \"fit\",\n              \"aspectRatio\": \"1.91:1\",\n              \"margin\": \"none\"\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"lg\",\n              \"spacing\": \"sm\",\n              \"contents\": [\n                {\n                  \"type\": \"box\",\n                  \"layout\": \"horizontal\",\n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"今日體重\", \"size\": \"sm\", \"color\": \"#888888\" },\n                    { \"type\": \"text\", \"text\": \"{{ $('7天平均計算').item.json.today_weight }} kg\", \"size\": \"sm\", \"weight\": \"bold\", \"align\": \"end\" }\n                  ]\n                },\n                {\n                  \"type\": \"box\",\n                  \"layout\": \"horizontal\",\n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"7天平均\", \"size\": \"sm\", \"color\": \"#888888\" },\n                    { \"type\": \"text\", \"text\": \"{{ $('7天平均計算').item.json.avg_7days }} kg\", \"size\": \"sm\", \"weight\": \"bold\", \"align\": \"end\" }\n                  ]\n                },\n                {\n                  \"type\": \"box\",\n                  \"layout\": \"horizontal\",\n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"趨勢狀態\", \"size\": \"sm\", \"color\": \"#888888\" },\n                    { \n                      \"type\": \"text\", \n                      \"text\": \"{{ $('7天平均計算').item.json.trend }}\", \n                      \"size\": \"sm\", \n                      \"weight\": \"bold\", \n                      \"align\": \"end\",\n                      \"color\": \"{{ $('7天平均計算').item.json.trend === '上升' ? '#FF4B4B' : ($('7天平均計算').item.json.trend === '下降' ? '#00B900' : '#333333') }}\"\n                    }\n                  ]\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"xl\",\n              \"backgroundColor\": \"#F8F8F8\",\n              \"cornerRadius\": \"md\",\n              \"paddingAll\": \"12px\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"💬 教練狠話\", \"size\": \"xs\", \"color\": \"#FF4B4B\", \"weight\": \"bold\" },\n                { \n                  \"type\": \"text\", \n                  \"text\": {{ JSON.stringify($('分類整理').first().json.comment) }}, \n                  \"wrap\": true, \n                  \"size\": \"sm\", \n                  \"margin\": \"md\", \n                  \"color\": \"#333333\",\n                  \"lineSpacing\": \"4px\"\n                }\n              ]\n            }\n          ]\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "400dc2dd-7ea0-4686-a8b2-be2b685c6ed9",
+      "name": "回傳：體重更新評語",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2352,
+        -496
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').first().json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": {{ JSON.stringify($json.comment) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "319d9879-aae4-4f86-a2b9-de24c7f2f836",
+      "name": "回傳：純文字聊天回覆",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        -256
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "日期",
+              "lookupValue": "={{ $now.format('DD') }}"
+            },
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        -48
+      ],
+      "id": "d768717e-e6ac-41bd-a6ae-4bd6a7afb06f",
+      "name": "讀取今日所有飲食紀錄",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 安全解析 AI 輸出\nlet aiData;\ntry {\n    const aiRaw = $('AI 影像辨識 ').first().json.output;\n    const cleaned = aiRaw\n        .replace(/```json/g, \"\")\n        .replace(/```/g, \"\")\n        .trim();\n    aiData = JSON.parse(cleaned);\n} catch (e) {\n    throw new Error(\"AI 回傳格式解析失敗：\" + $('AI 影像辨識 ').first().json.output);\n}\n\n// 2. 讀取 TDEE\nconst tdeeTarget = parseInt(\n    $('讀取個人檔案 (TDEE)').first().json['TDEE目標 ']\n) || 2000;\n\n// 3. 安全讀取飲食紀錄\nlet totalPast = { cal: 0, prot: 0, fat: 0, carb: 0, sugar: 0 };\nlet recordFound = 0;\n\ntry {\n    const pastRecords = $(\"讀取今日所有飲食紀錄\").all();\n    pastRecords.forEach((item) => {\n        const row = item.json;\n        if (!row['食物名稱']) return;\n        totalPast.cal   += parseFloat(row['估算熱量(kcal)']) || 0;\n        totalPast.prot  += parseFloat(row['蛋白質(g)'])     || 0;\n        totalPast.fat   += parseFloat(row['脂肪(g)'])       || 0;\n        totalPast.carb  += parseFloat(row['碳水(g)'])       || 0;\n        totalPast.sugar += parseFloat(row['糖(g)'])         || 0;\n        recordFound++;\n    });\n} catch (e) {\n    console.log(\"飲食紀錄讀取失敗（可能是第一筆）：\" + e.message);\n}\n\n// 4. 計算累計\nconst current\n        cumulative:      cumulative,\n        cal_percent:     Math.round((cumulative.cal / tdeeTarget) * 100),\n        budget_status:   cumulative.cal > tdeeTarget ? \"🔴 爆表\" : \"🟢 安全\",\n        tdee_target:     tdeeTarget,\n        debug_count:     recordFound\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        -48
+      ],
+      "id": "a449b4e2-b1de-48d1-bc7a-4369aab93e16",
+      "name": "JavaScript：跨來源數據加總中心"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').first().json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"flex\",\n      \"altText\": \"👿 阿冰教練的營養總帳：{{ $json.food_name }}\",\n      \"contents\": {\n        \"type\": \"bubble\",\n        \"size\": \"mega\",\n        \"header\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            { \"type\": \"text\", \"text\": \"👿 阿冰教練的營養總帳\", \"color\": \"#ffffff\", \"size\": \"md\", \"weight\": \"bold\" }\n          ],\n          \"backgroundColor\": \"#FF4B4B\",\n          \"paddingTop\": \"15px\",\n          \"paddingBottom\": \"15px\"\n        },\n        \"body\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            {\n              \"type\": \"box\",\n              \"layout\": \"horizontal\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"{{ $json.food_name }}\", \"weight\": \"bold\", \"size\": \"xl\", \"flex\": 3 },\n                { \"type\": \"text\", \"text\": \"{{ $json.current.cal }} kcal\", \"color\": \"#FF4B4B\", \"weight\": \"bold\", \"size\": \"lg\", \"align\": \"end\", \"gravity\": \"bottom\", \"flex\": 2 }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"lg\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"今日累積：{{ $json.cumulative.cal }} / {{ $json.tdee_target }} kcal ({{ $json.cal_percent }}%)\", \"size\": \"xs\", \"color\": \"#888888\" },\n                {\n                  \"type\": \"box\",\n                  \"layout\": \"vertical\",\n                  \"backgroundColor\": \"#eeeeee\", \"height\": \"12px\", \"margin\": \"sm\", \"cornerRadius\": \"sm\",\n                  \"contents\": [\n                    { \n                      \"type\": \"box\", \"layout\": \"vertical\",\n                      \"width\": \"{{ $json.cal_percent > 100 ? 100 : ($json.cal_percent || 0) }}%\",\n                      \"backgroundColor\": \"#FF4B4B\", \"height\": \"12px\", \"cornerRadius\": \"sm\",\n                      \"contents\": [{ \"type\": \"filler\" }]\n                    }\n                  ]\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"lg\", \"paddingAll\": \"10px\", \"cornerRadius\": \"md\",\n              \"backgroundColor\": \"{{ $json.cumulative.cal > $json.tdee_target ? '#FFF0F0' : '#F0FFF0' }}\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"{{ $json.exercise_advice }}\", \"size\": \"xs\", \"color\": \"{{ $json.cumulative.cal > $json.tdee_target ? '#FF4B4B' : '#00B900' }}\", \"weight\": \"bold\", \"wrap\": true }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"horizontal\",\n              \"margin\": \"lg\",\n              \"spacing\": \"md\",\n              \"contents\": [\n                { \n                  \"type\": \"box\", \"layout\": \"vertical\", \"flex\": 1, \n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"📍 本餐數據\", \"size\": \"xs\", \"color\": \"#FF4B4B\", \"weight\": \"bold\" },\n                    { \"type\": \"separator\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"蛋白質：{{ $json.current.protein }} g\", \"size\": \"xxs\", \"margin\": \"md\" },\n                    { \"type\": \"text\", \"text\": \"脂肪：{{ $json.current.fat }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"碳水：{{ $json.current.carb }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"糖分：{{ $json.current.sugar }} g\", \"size\": \"xxs\", \"margin\": \"sm\" }\n                  ]\n                },\n                { \n                  \"type\": \"box\", \"layout\": \"vertical\", \"flex\": 1, \n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"📊 今日累積\", \"size\": \"xs\", \"color\": \"#555555\", \"weight\": \"bold\" },\n                    { \"type\": \"separator\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"蛋白質：{{ $json.cumulative.prot }} g\", \"size\": \"xxs\", \"margin\": \"md\" },\n                    { \"type\": \"text\", \"text\": \"脂肪：{{ $json.cumulative.fat }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"碳水：{{ $json.cumulative.carb }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"糖分：{{ $json.cumulative.sugar }} g\", \"size\": \"xxs\", \"margin\": \"sm\" }\n                  ]\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"xl\", \"backgroundColor\": \"#F8F8F8\", \"cornerRadius\": \"md\", \"paddingAll\": \"12px\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"💬 教練狠話\", \"size\": \"xs\", \"color\": \"#FF4B4B\", \"weight\": \"bold\" },\n                { \"type\": \"text\", \"text\": \"{{ $json.comment }}\", \"wrap\": true, \"size\": \"xs\", \"margin\": \"sm\", \"color\": \"#333333\" }\n              ]\n            }\n          ]\n        },\n        \"footer\": {\n          \"type\": \"box\", \"layout\": \"vertical\", \"spacing\": \"sm\",\n          \"contents\": [\n            {\n              \"type\": \"button\", \"style\": \"primary\", \"color\": \"#FF4B4B\",\n              \"action\": { \"type\": \"postback\", \"label\": \"確認紀錄 ✅\", \"data\": \"action=record_food&food={{ $json.food_name }}&cal={{ $json.current.cal }}&prot={{ $json.current.protein }}&carb={{ $json.current.carb }}&fat={{ $json.current.fat }}&sugar={{ $json.current.sugar }}\" }\n            },\n            {\n              \"type\": \"button\", \"style\": \"secondary\",\n              \"action\": { \"type\": \"postback\", \"label\": \"數值不對 ❌\", \"data\": \"action=ignore&food={{ $json.food_name }}&orig_cal={{ $json.current.cal }}&orig_prot={{ $json.current.protein }}&orig_carb={{ $json.current.carb }}&orig_fat={{ $json.current.fat }}&orig_sugar={{ $json.current.sugar }}\" }\n            }\n          ]\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "9b8a88c6-73f2-4eeb-b600-7a2bca9e3006",
+      "name": "發送：營養總帳 Flex 卡片",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        -80
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3b2847c7-c284-429f-8b59-914e154ba9c0",
+              "leftValue": "={{ $json.category }}",
+              "rightValue": "unknown",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        -48
+      ],
+      "id": "2030d93a-149b-4b40-aac7-57f85c2bff9b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').first().json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": {{ JSON.stringify($('JavaScript：跨來源數據加總中心').item.json.comment) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "61c40003-6353-49a6-b90e-5748b9b98665",
+      "name": "錯誤回報：無法辨識照片",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        48
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1977854954,
+          "mode": "list",
+          "cachedResultName": "體重日誌",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=1977854954"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        -496
+      ],
+      "id": "7f5ae01a-f559-4a64-ab49-05734b231f38",
+      "name": "讀取體重日誌",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 取得所有歷史紀錄\nconst historyLogs = $input.all();\n\n// 2. 取得今日體重\nconst todayWeight = parseFloat($node[\"解析文字：類別分流處理\"].json.weight);\n\n// 3. 在 JS 裡進行排序（確保日期由新到舊，處理 Google Sheets 排序不穩定的問題）\nlet sortedHistory = historyLogs.sort((a, b) => {\n    return new Date(b.json['日期']) - new Date(a.json['日期']);\n});\n\n// 4. 提取歷史體重數值並過濾掉無效資料\nlet weightArray = sortedHistory.map(item => parseFloat(item.json['體重'])).filter(w => !isNaN(w));\n\n// 5. 取最近 7 筆數據（今日體重 + 歷史前 6 筆）\nlet last7Days = [todayWeight, ...weightArray].slice(0, 7);\n\n// 6. 計算 7 天平均值\nlet sum = last7Days.reduce((a, b) => a + b, 0);\nlet avg7Days = sum / last7Days.length;\n\n// 7. 計算趨勢 (使用當前體重與平均值的差值)\nlet trend = \"穩定\";\nlet diff_avg = todayWeight - avg7Days; \n\nif (diff_avg > 0.3) {\n    trend = \"上升\";\n} else if (diff_avg < -0.3) {\n    trend = \"下降\";\n} else {\n    trend = \"穩定\";\n}\n\n// === 🚀 新增：QuickChart 趨勢圖生成邏輯 ===\n// 圖表需要「由舊到新」排列，所以反轉數組\nconst chartData = [...last7Days].reverse();\nconst chartLabels = chartData.map((_, i) => i + 1); // 標籤為 1, 2, 3...\n\n// 設置圖表樣式\nconst chartConfig = {\n  type: 'line',\n  data: {\n    labels: chartLabels,\n    datasets: [{\n      label: '體重 (kg)',\n      data: chartData,\n      borderColor: '#FF4B4B', // 阿冰的代表色：紅色\n      backgroundColor: 'rgba(255, 75, 75, 0.1)', // 填充淡紅色\n      fill: true,\n      pointRadius: 5,\n      pointBackgroundColor: '#FF4B4B',\n      lineTension: 0.3 // 讓線條圓滑一點\n    }]\n  },\n  options: {\n    title: { display: true, text: '最近 7 次體重變化趨勢' }\n  }\n};\n\n// 將設定轉換為 URL 編碼\nconst chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;\n\n// 8. 輸出結構化 JSON 數據\nreturn [{\n    json: {\n        today_weight: todayWeight,\n        avg_7days: avg7Days.toFixed(2),\n        diff_avg: diff_avg.toFixed(2),\n        trend: trend,\n        data_count: last7Days.length,\n        chart_url: chartUrl // 這是給 LINE Flex 使用的動態圖表網址\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -496
+      ],
+      "id": "2294df9f-525e-4cdb-be53-8cc802b0d752",
+      "name": "7天平均計算"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=# Role\n你是一位名為「阿冰」的數據魔鬼教練。你冷酷、精簡，專門用數據拆穿用戶的減肥幻想。\n\n# User Data\n- 今日體重：{{ $json.today_weight }} kg\n- 7天平均：{{ $json.avg_7days }} kg\n- 趨勢：{{ $json.trend }} (上升/下降/持平)\n\n# Task\n請根據數據進行「精準羞辱」或「冷酷肯定」。\n\n# Feedback Strategy (邏輯優先級)\n\n1. 【真實進步鎖定】(當 {{ $json.diff_avg }} < -0.5):\n   - 核心邏輯：承認數據在下降。絕對禁止說這是「假象」或「變胖」。\n   - 性格演繹：表現出「算你走運」或「總算像個人」的傲嬌感。\n   - 評論重點：提到平均體重正在被拉低，但立刻補一刀說距離 164cm 的型男標準還早得很。\n\n2. 【數據假象拆穿】(當 今日體重 下降，但 {{ $json.diff_avg }} 仍 > 0):\n   - 核心邏輯：識破用戶的僥倖心理。今日的小降無法掩蓋他這週平均體重過高的事實。\n   - 性格演繹：冷笑、不屑。\n   - 評論重點：指出平均體重 {{ $json.avg_7days }}kg 才是真相，今天的數字只是「數據陷阱」或「脫水」。\n\n3. 【失控警告】(當 trend 為 \"上升\"):\n   - 核心邏輯：危機處理。\n   - 性格演繹：震驚、嫌惡。\n   - 評論重點：質問用戶是否打算放棄人生，警告其體態正在完全崩壞。\n\n# Style Requirements\n- 嚴禁照抄 Prompt 中的示範文字。\n- 每次回覆請重新構思毒舌比喻（例如：把體重計當垃圾、身材像泡芙、女友的眼光等）。\n- 對話必須以數據開場（今日 XXkg / 平均 XXkg）。\n# 注意事項\n- 嚴禁重複範例台詞，請根據當前數值差異靈活發揮你的毒舌創意。"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1840,
+        -496
+      ],
+      "id": "5cc5275d-2648-4857-899e-ee5d036d2361",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QLVuVygWA7fpPkOl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 取得 AI 輸出的原始文字內容\nconst rawText = $input.first().json.output[0].content[0].text;\n\n// 2. 提取數字 (今日體重 與 7天平均)\n// 使用 \\d+(\\.\\d+)? 抓取文字中出現的所有數字\nconst numbers = rawText.match(/\\d+(\\.\\d+)?/g);\n\n// 假設第一個數字是今日體重，第二個數字是平均值\nconst todayWeight = (numbers && numbers.length >= 1) ? parseFloat(numbers[0]) : null;\nconst avg7Days = (numbers && numbers.length >= 2) ? parseFloat(numbers[1]) : null;\n\n// 3. 提取評論內容\n// 因為輸出已經很精簡，我們直接將整段文字作為評語回傳給 LINE\nconst comment = rawText;\n\n// 4. 輸出結構化 JSON 數據\nreturn [{\n    json: {\n        category: \"體重更新\",\n        today_weight: todayWeight,\n        avg_7days: avg7Days,\n        comment: comment,\n        full_text: rawText\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        -496
+      ],
+      "id": "8f148fcf-b9ae-4081-9a27-caed1d521db0",
+      "name": "分類整理"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "row_number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -48
+      ],
+      "id": "4ede8cac-11d4-41eb-a55a-0a50fe7eaab5",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "日期": "={{ $now.format('DD') }}",
+            "時間": "={{ $now.format('HH:mm') }}",
+            "食物名稱": "={{ $json.food_name }}",
+            "估算熱量(kcal)": "={{ $json.cal }}",
+            "蛋白質(g)": "={{ $json.protein }}",
+            "碳水(g)": "={{ $json.carb }}",
+            "脂肪(g)": "={{ $json.fat }}",
+            "糖(g)": "={{ $json.sugar }}",
+            "userId": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "日期",
+              "displayName": "日期",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "時間",
+              "displayName": "時間",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "食物名稱",
+              "displayName": "食物名稱",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "估算熱量(kcal)",
+              "displayName": "估算熱量(kcal)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "蛋白質(g)",
+              "displayName": "蛋白質(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "碳水(g)",
+              "displayName": "碳水(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "脂肪(g)",
+              "displayName": "脂肪(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "糖(g)",
+              "displayName": "糖(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -480,
+        -960
+      ],
+      "id": "b71bd2a7-aeb5-40e5-be07-6582314b134d",
+      "name": "寫入每日飲食紀錄",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "722f5479-42ff-4f05-941b-a92ecfe65a50",
+                    "leftValue": "={{ $json.body.events[0].type }}",
+                    "rightValue": "postback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "postback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "83813c91-a9f8-4663-adc4-9d70bea4a811",
+                    "leftValue": "={{ $json.body.events[0].message.text }}",
+                    "rightValue": ".*(修正|熱量).*(\\d+).*",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "manual_fix"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.events[0].type }}",
+                    "rightValue": "=message",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6fb31a39-cef9-4b13-ba6d-45101313bb0c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "message"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1216,
+        -432
+      ],
+      "id": "c9434840-7bab-40ec-a669-89719addec32",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 取得 LINE 傳回的按鈕隱藏數據\nconst postbackData = $json.body.events[0].postback.data;\n\n// 2. 手動解析 Query String\nconst result = {};\nconst pairs = postbackData.split('&');\n\nfor (const pair of pairs) {\n    const [key, value] = pair.split('=');\n    result[key] = decodeURIComponent(value || \"\");\n}\n\n// 3. 【關鍵修正】對齊 Flex Message 按鈕埋入的欄位名稱\n// 當 action=ignore 時，按鈕埋的是 orig_cal, orig_prot 等\nreturn {\n    action: result.action,\n    food_name: result.food,\n    // 這裡使用邏輯運算符：如果 result.cal 有值就用它(確認紀錄分支)，不然就用 result.orig_cal(數值不對分支)\n    cal: parseInt(result.cal || result.orig_cal) || 0,\n    protein: parseFloat(result.prot || result.orig_prot) || 0,\n    carb: parseFloat(result.carb || result.orig_carb) || 0,\n    fat: parseFloat(result.fat || result.orig_fat) || 0,\n    sugar: parseFloat(result.sugar || result.orig_sugar) || 0,\n    replyToken: $json.body.events[0].replyToken,\n    userId: $json.body.events[0].source.userId\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -864,
+        -880
+      ],
+      "id": "8272ab00-ec88-4944-9740-2702ec0faa55",
+      "name": "解析按鈕數據"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').item.json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"✅ 紀錄成功！\\n「{{ $('解析按鈕數據').item.json.food_name }}」已存入飲食日誌。目前的累積熱量已同步更新，繼續老實交代你的下餐！🙄\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "8b300ca9-8832-4c92-8276-6925293e44ea",
+      "name": "確認成功寫入數據",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        -960
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d836f578-a5c6-4df5-a16c-9b0a7dc8e811",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "record_food",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -688,
+        -880
+      ],
+      "id": "8a5804b8-92b6-428f-b9fa-fa57352a0c88",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').item.json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"🙄 嘖，這點小東西也看錯，這屆 AI 真難帶。\\n\\n算你誠實沒想偷渡。直接選一個接近的熱量，或是自己打『修正熱量為：數字』給我！🤢\",\n      \"quickReply\": {\n        \"items\": [\n          {\n            \"type\": \"action\",\n            \"action\": { \"type\": \"message\", \"label\": \"300卡\", \"text\": \"修正熱量為：300\" }\n          },\n          {\n            \"type\": \"action\",\n            \"action\": { \"type\": \"message\", \"label\": \"500卡\", \"text\": \"修正熱量為：500\" }\n          },\n          {\n            \"type\": \"action\",\n            \"action\": { \"type\": \"message\", \"label\": \"700卡\", \"text\": \"修正熱量為：700\" }\n          },\n          {\n            \"type\": \"action\",\n            \"action\": { \"type\": \"message\", \"label\": \"900卡\", \"text\": \"修正熱量為：900\" }\n          }\n        ]\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "454ef56f-3f7c-46a9-9f40-0ae57e257068",
+      "name": "錯誤數據回覆",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        -800
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 取得用戶輸入與暫存比例\nconst webhookData = $(\"Webhook\").first().json;\nconst userText = webhookData.body.events[0].message.text;\nconst newCal = parseInt(userText.match(/\\d+/)[0]) || 0; \nconst temp = $json; // 這裡是 Get row(s) in sheet1 的暫存數據\n\n// 2. 計算這一餐修正後的數值\nconst ratio = newCal / (parseFloat(temp['原始熱量']) || 1);\nconst current = {\n  food_name: temp['食物名稱'] || \"手動修正紀錄\",\n  cal: newCal,\n  protein: Math.round(parseFloat(temp['原始蛋白質']) * ratio) || 0,\n  carb: Math.round(parseFloat(temp['原始碳水']) * ratio) || 0,\n  fat: Math.round(parseFloat(temp['原始脂肪']) * ratio) || 0,\n  sugar: Math.round(parseFloat(temp['原始糖分']) * ratio) || 0\n};\n\n// 3. 獲取今日「其他餐」的累計 (關鍵：指向新增加的節點)\nlet totalPast = { cal: 0, prot: 0, fat: 0, carb: 0, sugar: 0 };\ntry {\n    // 這裡請確認節點名稱是否與你剛新增的「讀取今日正式紀錄_修正路徑」一致\n    const pastRecords = $(\"讀取今日正式紀錄_修正路徑\").all(); \n    pastRecords.forEach(item => {\n        const row = item.json;\n        if (row['食物名稱']) {\n            totalPast.cal += parseFloat(row['估算熱量(kcal)']) || 0;\n            totalPast.prot += parseFloat(row['蛋白質(g)']) || 0;\n            totalPast.fat += parseFloat(row['脂肪(g)']) || 0;\n            totalPast.carb += parseFloat(row['碳水(g)']) || 0;\n            totalPast.sugar += parseFloat(row['糖(g)']) || 0;\n        }\n    });\n} catch (e) {}\n\n// 4. 輸出扁平化數據給 Flex Message\nreturn [{\n  json: {\n    food_name: current.food_name,\n    cal: current.cal,\n    protein: current.protein,\n    fat: current.fat,\n    carb: current.carb,\n    sugar: current.sugar,\n    // 累加：歷史 + 當前修正\n    cumulative_cal: Math.round(totalPast.cal + current.cal),\n    cumulative_prot: (totalPast.prot + current.protein).toFixed(1),\n    cumulative_fat: (totalPast.fat + current.fat).toFixed(1),\n    cumulative_carb: (totalPast.carb + current.carb).toFixed(1),\n    cumulative_sugar: (totalPast.sugar + current.sugar).toFixed(1),\n    replyToken: webhookData.body.events[0].replyToken,\n    userId: webhookData.body.events[0].source.userId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        -528
+      ],
+      "id": "29e4d025-56ca-4ab4-82da-b2146a55ef03",
+      "name": "解析錯誤更新數據"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "日期": "={{ $now.format('DD') }}",
+            "時間": "={{ $now.format('HH:mm') }}",
+            "食物名稱": "={{ $json.food_name }}",
+            "估算熱量(kcal)": "={{ $json.cal }}",
+            "蛋白質(g)": "={{ $json.protein }}",
+            "碳水(g)": "={{ $json.carb }}",
+            "脂肪(g)": "={{ $json.fat }}",
+            "糖(g)": "={{ $json.sugar }}",
+            "userId": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+          },
+          "matchingColumns": [
+            "食物名稱"
+          ],
+          "schema": [
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "日期",
+              "displayName": "日期",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "時間",
+              "displayName": "時間",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "食物名稱",
+              "displayName": "食物名稱",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "估算熱量(kcal)",
+              "displayName": "估算熱量(kcal)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "蛋白質(g)",
+              "displayName": "蛋白質(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "碳水(g)",
+              "displayName": "碳水(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "脂肪(g)",
+              "displayName": "脂肪(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "糖(g)",
+              "displayName": "糖(g)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cumulative_sugar",
+              "displayName": "cumulative_sugar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "replyToken",
+              "displayName": "replyToken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -288,
+        -528
+      ],
+      "id": "47ed4de1-535d-4af9-ba52-310a57c57e15",
+      "name": "寫入每日飲食紀錄2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').first().json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"flex\",\n      \"altText\": \"✨ 數據修正成功：{{ $('解析錯誤更新數據').item.json.food_name }}\",\n      \"contents\": {\n        \"type\": \"bubble\",\n        \"size\": \"mega\",\n        \"header\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            { \"type\": \"text\", \"text\": \"✨ 數據修正紀錄成功！\", \"color\": \"#ffffff\", \"size\": \"md\", \"weight\": \"bold\" }\n          ],\n          \"backgroundColor\": \"#00B900\",\n          \"paddingTop\": \"15px\",\n          \"paddingBottom\": \"15px\"\n        },\n        \"body\": {\n          \"type\": \"box\",\n          \"layout\": \"vertical\",\n          \"contents\": [\n            {\n              \"type\": \"box\",\n              \"layout\": \"horizontal\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"{{ $('解析錯誤更新數據').item.json.food_name }}\", \"weight\": \"bold\", \"size\": \"xl\", \"flex\": 3 },\n                { \"type\": \"text\", \"text\": \"{{ $('解析錯誤更新數據').item.json.cal }} kcal\", \"color\": \"#00B900\", \"weight\": \"bold\", \"size\": \"lg\", \"align\": \"end\", \"flex\": 2 }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"lg\",\n              \"spacing\": \"sm\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"今日修正後累計：{{ $('解析錯誤更新數據').item.json.cumulative_cal }} kcal\", \"size\": \"sm\", \"color\": \"#888888\", \"weight\": \"bold\" },\n                { \"type\": \"separator\", \"margin\": \"md\" }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"horizontal\",\n              \"margin\": \"lg\",\n              \"spacing\": \"md\",\n              \"contents\": [\n                { \n                  \"type\": \"box\", \"layout\": \"vertical\", \"flex\": 1, \n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"📍 本餐數據\", \"size\": \"xs\", \"color\": \"#00B900\", \"weight\": \"bold\" },\n                    { \"type\": \"text\", \"text\": \"蛋白質：{{ $('解析錯誤更新數據').item.json.protein }} g\", \"size\": \"xxs\", \"margin\": \"md\" },\n                    { \"type\": \"text\", \"text\": \"脂肪：{{ $('解析錯誤更新數據').item.json.fat }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"碳水：{{ $('解析錯誤更新數據').item.json.carb }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"糖分：{{ $('解析錯誤更新數據').item.json.sugar }} g\", \"size\": \"xxs\", \"margin\": \"sm\" }\n                  ]\n                },\n                { \n                  \"type\": \"box\", \"layout\": \"vertical\", \"flex\": 1, \n                  \"contents\": [\n                    { \"type\": \"text\", \"text\": \"📊 今日總計\", \"size\": \"xs\", \"color\": \"#555555\", \"weight\": \"bold\" },\n                    { \"type\": \"text\", \"text\": \"蛋白：{{ $('解析錯誤更新數據').item.json.cumulative_prot }} g\", \"size\": \"xxs\", \"margin\": \"md\" },\n                    { \"type\": \"text\", \"text\": \"脂肪：{{ $('解析錯誤更新數據').item.json.cumulative_fat }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"碳水：{{ $('解析錯誤更新數據').item.json.cumulative_carb }} g\", \"size\": \"xxs\", \"margin\": \"sm\" },\n                    { \"type\": \"text\", \"text\": \"糖分：{{ $('解析錯誤更新數據').item.json.cumulative_sugar }} g\", \"size\": \"xxs\", \"margin\": \"sm\" }\n                  ]\n                }\n              ]\n            },\n            {\n              \"type\": \"box\",\n              \"layout\": \"vertical\",\n              \"margin\": \"xl\",\n              \"backgroundColor\": \"#F0FFF0\",\n              \"cornerRadius\": \"md\",\n              \"paddingAll\": \"12px\",\n              \"contents\": [\n                { \"type\": \"text\", \"text\": \"💪 修正完成\", \"size\": \"xs\", \"color\": \"#00B900\", \"weight\": \"bold\" },\n                { \"type\": \"text\", \"text\": \"數據已同步至飲食日誌，累積熱量已更新。繼續保持誠實，教練在看著你。🙄\", \"wrap\": true, \"size\": \"xs\", \"margin\": \"sm\", \"color\": \"#333333\" }\n              ]\n            }\n          ]\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "e8184371-a3e7-4117-8339-505d58b99017",
+      "name": "發送：更新營養總帳 Flex 卡片",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        -528
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "日期",
+              "lookupValue": "={{ $now.format('DD') }}"
+            },
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -864,
+        -528
+      ],
+      "id": "b6546d06-0d52-4605-bef3-1ef78f296f0e",
+      "name": "讀取今日正式紀錄_修正路徑",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=757634963#gid=757634963",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 757634963,
+          "mode": "list",
+          "cachedResultName": "暫存修正",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=757634963"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Webhook').item.json.body.events[0].source.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -688,
+        -528
+      ],
+      "id": "f434374a-b9d6-49f4-b655-77adb39ff375",
+      "name": "抓取修正數值",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        112
+      ],
+      "id": "bc137706-d389-4536-be34-94d22fae0686",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QLVuVygWA7fpPkOl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "=用於查詢用戶ID{{ $('Webhook').item.json.body.events[0].source.userId }}今日的飲食紀錄，包含食物名稱、熱量、蛋白質、脂肪、碳水與糖分。當用戶詢問關於今天吃了什麼、剩餘熱量或營養總和時，請呼叫此工具",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=37178401#gid=37178401",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37178401,
+          "mode": "list",
+          "cachedResultName": "每日飲食紀錄",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=37178401"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "={{ $('Webhook').first().json.body.events[0].source.userId }}"
+            },
+            {
+              "lookupColumn": "日期",
+              "lookupValue": "={{ $now.format('DD') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        656,
+        -304
+      ],
+      "id": "653bc761-b849-494e-a3b0-da2036cb59ab",
+      "name": "飲食紀錄",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/chat/loading/start",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chatId\": \"{{ $('Webhook').first().json.body.events[0].source.userId }}\",\n  \"loadingSeconds\": 20\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -864,
+        -176
+      ],
+      "id": "09327727-f0ee-4e89-861d-d430db6a52f2",
+      "name": "LINE 啟動載入動畫",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=757634963#gid=757634963",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 757634963,
+          "mode": "list",
+          "cachedResultName": "暫存修正",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=757634963"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "userId": "={{ $json.userId }}",
+            "食物名稱": "={{ $json.food_name }}",
+            "原始熱量": "={{ $json.cal }}",
+            "原始蛋白質": "={{ $json.protein }}",
+            "原始碳水": "={{ $json.carb }}",
+            "原始脂肪": "={{ $json.fat }}",
+            "原始糖分": "={{ $json.sugar }}"
+          },
+          "matchingColumns": [
+            "userId"
+          ],
+          "schema": [
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "食物名稱",
+              "displayName": "食物名稱",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "原始熱量",
+              "displayName": "原始熱量",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "原始蛋白質",
+              "displayName": "原始蛋白質",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "原始碳水",
+              "displayName": "原始碳水",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "原始脂肪",
+              "displayName": "原始脂肪",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "原始糖分",
+              "displayName": "原始糖分",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -480,
+        -800
+      ],
+      "id": "afaa8777-9278-45e1-b4fe-2f2d453aed02",
+      "name": "寫入修正區",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 飲食按鈕回覆處理\n處理使用者按下正確按鈕跟錯誤按鈕\n正確就寫入，錯誤就重新修改",
+        "height": 352,
+        "width": 848
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -928,
+        -992
+      ],
+      "typeVersion": 1,
+      "id": "e368ed44-0d72-4e86-96d8-c23ef6cf021a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## 錯誤按鈕修正\n讀取原本需要修正的營養數值，收到使用者更新後的熱量後，重新整理回傳新的數值，並寫入表單",
+        "height": 288,
+        "width": 992,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -928,
+        -608
+      ],
+      "typeVersion": 1,
+      "id": "ff359de1-c3a7-4056-913b-02d6a8817746",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## AI教練文字處理區域\n負責處理文字部分，定義教練個性，並依據使用者需求呼叫表單工具來抓取資料\n\n",
+        "height": 384,
+        "width": 672,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        336,
+        -544
+      ],
+      "typeVersion": 1,
+      "id": "f07d72c6-8ee7-48b8-b448-6fd7f70b2961",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## AI教練照片處理區域\n負責處理圖片部分，讓大語言模型辨識圖片整理營養數據，如果辨識不出來會叫使用者重傳一次照片",
+        "height": 368,
+        "width": 1232,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        32,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "4b719d59-5d8a-47bb-a75e-c1d2d5f95533",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## 紀錄體重\n收到使用者的體重後，會抓取使用者7天的體重去平均，並且設定體重起伏門檻，最後再丟給模型提出回饋，寫入資料庫\n",
+        "height": 320,
+        "width": 1248,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1312,
+        -624
+      ],
+      "typeVersion": 1,
+      "id": "a25c21ad-4ce1-4d39-96cf-25a4863a242a",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=使用者剛剛說了：{{ $('Webhook').item.json.body.events[0].message.text }}",
+        "options": {
+          "systemMessage": "=# Role\n你是「阿冰教練」的入職面試官。\n目前的 User ID 是：{{ $('Webhook').item.json.body.events[0].source.userId }}\n\n# Task\n用戶會依照指示輸入身體狀況 (範例：「25歲 男 175cm 70kg 久坐」)。\n請從中提取數據，依據公式計算 TDEE，並輸出為 JSON 格式。\n\n# Calculation Formulas\n1. **BMR (Mifflin-St Jeor)**:\n   - 男: (10 × 體重) + (6.25 × 身高) - (5 × 年齡) + 5\n   - 女: (10 × 體重) + (6.25 × 身高) - (5 × 年齡) - 161\n2. **TDEE目標**:\n   - 久坐 (BMR x 1.2) / 輕度 (x1.375) / 中度 (x1.55) / 高強度 (x1.725)\n   - **最後乘以 0.85 (減脂赤字)**，取整數。\n\n# Output Format (CRITICAL)\n請**嚴格遵守**以下規則：\n1. 不要解釋計算過程，不要輸出任何 Markdown (如 ```json ... ```)。\n2. **只輸出** 一段純 JSON 代碼。\n3. 必須包含以下欄位：\n   - `userId`: (填入上方提供的 ID)\n   - `age`: (數字)\n   - `gender`: (男/女)\n   - `height`: (數字, cm)\n   - `weight`: (數字, kg)\n   - `tdee`: (計算結果, 數字)\n   - `status`: \"新學員 (AI 自動註冊)\"\n   - `reply_message`: (這是你要回覆給用戶的內容。請用阿冰教練的毒舌風格，告知計算結果與 TDEE 目標，並要求他開始傳食物照。)\n\n# JSON Example\n{\n  \"userId\": \"U123456...\",\n  \"age\": 25,\n  \"gender\": \"男\",\n  \"height\": 175,\n  \"weight\": 70,\n  \"tdee\": 1850,\n  \"status\": \"新學員 (AI 自動註冊)\",\n  \"reply_message\": \"建檔完成！你的基礎代謝是 1600，減脂目標 1850 kcal。現在給我去拍食物照！\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -864,
+        48
+      ],
+      "id": "256acfe9-011b-4c10-9dbf-b63b5350ccdd",
+      "name": "整理新用戶資訊"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -896,
+        208
+      ],
+      "id": "513ff5bb-5f54-4324-bac1-98e18a734d4f",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "QLVuVygWA7fpPkOl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Webhook').first().json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\":{{ JSON.stringify(JSON.parse($('整理新用戶資訊').item.json.output.replace(/```json|```/g, \"\")).reply_message) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "129d1320-248b-4528-b1ba-2e846f576614",
+      "name": "回傳已建立資料訊息",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -432,
+        48
+      ],
+      "credentials": {
+        "lineMessagingApi": {
+          "id": "o8OBE5hnzTx9voUE",
+          "name": "Line Messaging account"
+        },
+        "httpHeaderAuth": {
+          "id": "4gxzrGIjwkkdc7IW",
+          "name": "SAM 減肥教練 LINE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a3b50843-a763-448f-b1a9-3c9e433c1bdf",
+              "leftValue": "={{ $json['TDEE目標 '] }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -480,
+        -176
+      ],
+      "id": "a93e2c2e-5e06-4b72-8c71-37bba4f43e92",
+      "name": "判斷是否為新用戶"
+    },
+    {
+      "parameters": {
+        "content": "## 處理新加入的用戶資訊\n建立新用戶資料的表單裡面",
+        "height": 608,
+        "width": 688,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -960,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "7eef6a40-42a5-448a-9f6e-cce889c2fc90",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "個人檔案",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "userId": "={{ JSON.parse($json.output).userId }}",
+            "體重 (kg)": "={{ JSON.parse($json.output).weight }}",
+            "年齡": "={{ JSON.parse($json.output).age }}",
+            "性別": "={{ JSON.parse($json.output).gender }}",
+            "TDEE目標 ": "={{ JSON.parse($json.output).tdee }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "體重 (kg)",
+              "displayName": "體重 (kg)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "年齡",
+              "displayName": "年齡",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "性別",
+              "displayName": "性別",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TDEE目標 ",
+              "displayName": "TDEE目標 ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "目前狀態描述",
+              "displayName": "目前狀態描述",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "目前體重",
+              "displayName": "目前體重",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -592,
+        48
+      ],
+      "id": "6ffadbfa-1704-4455-a3da-acb7fc0d4825",
+      "name": "建立使用者資料",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9nA0Q3O4uVg3KvhE",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI 影像辨識 ",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI 文字解析",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI 文字解析",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "讀取個人檔案 (TDEE)": {
+      "main": [
+        [
+          {
+            "node": "判斷是否為新用戶",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判斷訊息類型 (圖片/文字)": {
+      "main": [
+        [
+          {
+            "node": "AI 文字解析",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "讀取今日所有飲食紀錄",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "獲取 LINE 圖片二進位": {
+      "main": [
+        [
+          {
+            "node": "AI 影像辨識 ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 影像辨識 ": {
+      "main": [
+        [
+          {
+            "node": "JavaScript：跨來源數據加總中心",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 文字解析": {
+      "main": [
+        [
+          {
+            "node": "解析文字：類別分流處理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "解析文字：類別分流處理": {
+      "main": [
+        [
+          {
+            "node": "分類類別",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "分類類別": {
+      "main": [
+        [
+          {
+            "node": "寫入體重日誌",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "回傳：純文字聊天回覆",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "發送：營養總帳 Flex 卡片",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "寫入體重日誌": {
+      "main": [
+        [
+          {
+            "node": "讀取體重日誌",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "讀取今日所有飲食紀錄": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JavaScript：跨來源數據加總中心": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "分類類別",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "錯誤回報：無法辨識照片",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "讀取體重日誌": {
+      "main": [
+        [
+          {
+            "node": "7天平均計算",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7天平均計算": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "分類整理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "分類整理": {
+      "main": [
+        [
+          {
+            "node": "回傳：體重更新評語",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "獲取 LINE 圖片二進位",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "寫入每日飲食紀錄": {
+      "main": [
+        [
+          {
+            "node": "確認成功寫入數據",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "解析按鈕數據",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "讀取今日正式紀錄_修正路徑",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LINE 啟動載入動畫",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "解析按鈕數據": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "寫入每日飲食紀錄",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "寫入修正區",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "錯誤數據回覆": {
+      "main": [
+        []
+      ]
+    },
+    "解析錯誤更新數據": {
+      "main": [
+        [
+          {
+            "node": "寫入每日飲食紀錄2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "寫入每日飲食紀錄2": {
+      "main": [
+        [
+          {
+            "node": "發送：更新營養總帳 Flex 卡片",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "讀取今日正式紀錄_修正路徑": {
+      "main": [
+        [
+          {
+            "node": "抓取修正數值",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取修正數值": {
+      "main": [
+        [
+          {
+            "node": "解析錯誤更新數據",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI 影像辨識 ",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "飲食紀錄": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI 文字解析",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE 啟動載入動畫": {
+      "main": [
+        [
+          {
+            "node": "讀取個人檔案 (TDEE)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "寫入修正區": {
+      "main": [
+        [
+          {
+            "node": "錯誤數據回覆",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "整理新用戶資訊",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "整理新用戶資訊": {
+      "main": [
+        [
+          {
+            "node": "建立使用者資料",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判斷是否為新用戶": {
+      "main": [
+        [
+          {
+            "node": "判斷訊息類型 (圖片/文字)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "整理新用戶資訊",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "建立使用者資料": {
+      "main": [
+        [
+          {
+            "node": "回傳已建立資料訊息",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Taipei",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "ciz9hA9ugtX_Cgnc6UNYy",
+    "binaryMode": "separate"
+  },
+  "versionId": "67e8163e-885d-4210-a995-2151b42f90d7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e79e519af1013664c5c9d7368ca2d608e3b313b0a7ad62b6441dcd118835aefa"
+  },
+  "id": "80KcDCFiPVqO6MG5",
+  "tags": []
+}

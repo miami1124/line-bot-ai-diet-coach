@@ -77,7 +77,7 @@
       "parameters": {
         "documentId": {
           "__rl": true,
-          "value": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit?gid=1977854954#gid=1977854954",
+          "value": "https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit?gid=1977854954#gid=1977854954",
           "mode": "url"
         },
         "sheetName": {
@@ -85,7 +85,7 @@
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "個人檔案",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BvuW17f3UTirRwPo375kMCjmR3h2Rx8QyJAjiEvauFo/edit#gid=0"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit#gid=0"
         },
         "filtersUI": {
           "values": [
